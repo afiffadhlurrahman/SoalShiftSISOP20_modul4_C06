@@ -19,6 +19,62 @@ Enkripsi versi 1:
   Note : Dalam penamaan file ‘/’ diabaikan, dan ekstensi tidak perlu di encrypt.
 - Metode enkripsi pada suatu direktori juga berlaku kedalam direktori lainnya yang ada didalamnya.
 ### Pembahasan soal 1
+eksripsi pada soal 1
+``` c
+void encrypt1(char* str) { //encrypt encv1_
+	if(strcmp(str, ".") == 0) return;
+    if(strcmp(str, "..") == 0)return;
+    int str_length = strlen(str);
+    for(int i = 0; i < str_length; i++) {
+		if(str[i] == '/') continue;
+		if(str[i]=='.') break;
+        for(int j = 0; j < 87; j++) {
+            if(str[i] == key[j]) {
+                str[i] = key[(j+10) % 87];
+                break;
+            }
+        }
+    }
+}
+```
+kita hanya melakukan enkripsi sampai sebelum `.`(ekstensi),maka kita break ketika bertemu `.` jika bertemu `/` akan di continue karena `/` tidak ikut dienkripsi, lalu kita enkripsi menggunakan key yang telah disediakan dengan menambah 10
+
+dekripsi pada soal 1
+```c
+void decrypt1(char * str){ //decrypt encv1_
+	if(strcmp(str, ".") == 0) return;
+    if(strcmp(str, "..") == 0)return;
+	if(strstr(str, "/") == NULL)return;
+    int str_length = strlen(str),s=0;
+	for(int i = str_length; i >= 0; i--){
+		if(str[i]=='/')break;
+
+		if(str[i]=='.'){//nyari titik terakhir
+			str_length = i;
+			break;
+		}
+	}
+	for(int i = 0; i < str_length; i++){
+		if(str[i]== '/'){
+			s = i+1;
+			break;
+		}
+	}
+    for(int i = s; i < str_length; i++) {
+		if(str[i] =='/'){
+            continue;
+        }
+        for(int j = 0;j < 87; j++) {
+            if(str[i] == key[j]) {
+                str[i] = key[(j+77) % 87];
+                break;
+            }
+        }
+    }
+}
+```
+untuk dekripsi, mirip dengan enkripsi hanya saja key nya ditambah 77 lalu di mod total keynya, agar kembali ke huruf awalnya
+fungsi dekripsi dipanggil setiap awal get attribute, readir,dll. agar kita bisa membuka file yang tidak ter-enkrip di dokumen.
 
 ### Soal 2
 Enkripsi versi 2:
@@ -29,7 +85,84 @@ Enkripsi versi 2:
 - Pada enkripsi v2, file-file pada direktori asli akan menjadi bagian-bagian kecil sebesar 1024 bytes dan menjadi normal ketika diakses melalui filesystem rancangan jasir. Sebagai contoh, file File_Contoh.txt berukuran 5 kB pada direktori asli akan menjadi 5 file kecil yakni: File_Contoh.txt.000, File_Contoh.txt.001, File_Contoh.txt.002, File_Contoh.txt.003, dan File_Contoh.txt.004.
 - Metode enkripsi pada suatu direktori juga berlaku kedalam direktori lain yang ada didalam direktori tersebut (rekursif).
 ### Pembahasan soal 2
+enkripsi dan dekripsi nomor 2, membagi file berdasarkan size
+```c
+long file_size(char *name)
+{
+    FILE *fp = fopen(name, "rb"); //must be binary read to get bytes
+    // printf("%s\n",name);
+    long size=-1;
+    if(fp)
+    {
+        fseek (fp, 0, SEEK_END);
+        size = ftell(fp)+1;
+        fclose(fp);
+    }
+    return size;
+}
 
+void encrypt2(char* enc, char * enc2){
+    if(strcmp(enc, ".") == 0) return;
+    if(strcmp(enc, "..") == 0)return;
+    
+    int segments=0, i, accum;
+
+    char largeFileName[300];    //change to your path
+    sprintf(largeFileName,"%s/%s/%s",dirPath,enc2,enc);
+    printf("%s\n",largeFileName);
+
+    char filename[260];//base name for small files.
+    sprintf(filename,"%s.",largeFileName);
+    //printf("%s\n",filename);
+
+    char smallFileName[300];
+    char line[1080];
+    FILE *fp1, *fp2;
+    long sizeFile = file_size(largeFileName);
+    //printf("%ld\n",sizeFile);
+    
+    segments = sizeFile/SEGMENT + 1;//ensure end of file
+    // printf("%d",segments);
+    fp1 = fopen(largeFileName, "r");
+    if(fp1)
+    {
+        char number[100];
+        printf("disini\n");
+        for(i=0;i<segments;i++)
+        {
+            accum = 0;
+            if(i/10==0){
+                sprintf(number,"00%d",i);
+            }
+            else if(i/100 == 0){
+                sprintf(number,"0%d",i);
+            }
+            else if(i/1000 == 0){
+                sprintf(number,"%d",i);
+            }
+            sprintf(smallFileName, "%s%s", filename, number);
+            fp2 = fopen(smallFileName, "w");
+            if(fp2)
+            {
+                while(fgets(line, 1080, fp1) && accum <= SEGMENT)
+                {
+                    accum += strlen(line);//track size of growing file
+                    fputs(line, fp2);
+                }
+                fclose(fp2);
+            }
+        }
+        fclose(fp1);
+    }
+    printf("keluar\n");
+}
+
+void decrypt2(char * enc){
+    if(strcmp(enc, ".") == 0) return;
+    if(strcmp(enc, "..") == 0)return;
+	if(strstr(enc, "/") == NULL)return;
+}
+```
 ### Soal 3
 Sinkronisasi direktori otomatis:
 
@@ -73,3 +206,21 @@ Log system:
 | INFO::200419-18:29:33::CREAT::/iz1/yena.jpg |
 | INFO::200419-18:29:33::RENAME::/iz1/yena.jpg::/iz1/yena.jpeg |
 ### Pembahasan soal 4
+fungsi log system warning dan info , disertai waktu dengan menggunakan `time_t`
+```c
+void logSystem(char* c, int type){
+    FILE * logFile = fopen("/home/vincent/fs.log", "a");
+	time_t currTime;
+	struct tm * time_info;
+	time ( &currTime );
+	time_info = localtime (&currTime);
+    int yr=time_info->tm_year,mon=time_info->tm_mon,day=time_info->tm_mday,hour=time_info->tm_hour,min=time_info->tm_min,sec=time_info->tm_sec;
+    if(type==1){//info
+        fprintf(logFile, "INFO::%d%d%d-%d:%d:%d::%s\n", yr, mon, day, hour, min, sec, c);
+    }
+    else if(type==2){ //warning
+        fprintf(logFile, "WARNING::%d%d%d-%d:%d:%d::%s\n", yr, mon, day, hour, min, sec, c);
+    }
+    fclose(logFile);
+}
+```
