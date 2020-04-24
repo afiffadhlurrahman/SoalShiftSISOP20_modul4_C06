@@ -74,15 +74,15 @@ long file_size(char *name)
     return size;
 }
 
-void encrypt2(char* enc){
+void encrypt2(char* enc, char * enc2){
     if(strcmp(enc, ".") == 0) return;
     if(strcmp(enc, "..") == 0)return;
     
     int segments=0, i, accum;
 
     char largeFileName[300];    //change to your path
-    sprintf(largeFileName,"%s/%s",dirPath,enc);
-    //printf("%s\n",largeFileName);
+    sprintf(largeFileName,"%s/%s/%s",dirPath,enc2,enc);
+    printf("%s\n",largeFileName);
 
     char filename[260];//base name for small files.
     sprintf(filename,"%s.",largeFileName);
@@ -99,11 +99,21 @@ void encrypt2(char* enc){
     fp1 = fopen(largeFileName, "r");
     if(fp1)
     {
+        char number[100];
         printf("disini\n");
         for(i=0;i<segments;i++)
         {
             accum = 0;
-            sprintf(smallFileName, "%s%d.txt", filename, i);
+            if(i/10==0){
+                sprintf(number,"00%d",i);
+            }
+            else if(i/100 == 0){
+                sprintf(number,"0%d",i);
+            }
+            else if(i/1000 == 0){
+                sprintf(number,"%d",i);
+            }
+            sprintf(smallFileName, "%s%s", filename, number);
             fp2 = fopen(smallFileName, "w");
             if(fp2)
             {
@@ -218,7 +228,7 @@ static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
 			encrypt1(dir->d_name);
         }
 		if(enc2 != NULL){
-			encrypt2(dir->d_name);
+			encrypt2(dir->d_name,enc2);
         }
 		res = (filler(buf, dir->d_name, &st, 0));
 		if(res!=0) 
