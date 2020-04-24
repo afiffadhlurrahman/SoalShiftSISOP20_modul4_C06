@@ -1,6 +1,4 @@
-# SoalShiftSISOP20_modul4_C06
-file system dan FUSE
-
+# SoalShiftSISOP20_modul4_C06 (file system dan FUSE)
 
 Di suatu perusahaan, terdapat pekerja baru yang super jenius, ia bernama jasir. Jasir baru bekerja selama seminggu di perusahan itu, dalam waktu seminggu tersebut ia selalu terhantui oleh ketidak amanan dan ketidak efisienan file system yang digunakan perusahaan tersebut. Sehingga ia merancang sebuah file system yang sangat aman dan efisien. Pada segi keamanan, Jasir telah menemukan 2 buah metode enkripsi file. Pada mode enkripsi pertama, nama file-file pada direktori terenkripsi akan dienkripsi menggunakan metode substitusi. Sedangkan pada metode enkripsi yang kedua, file-file pada direktori terenkripsi akan di-split menjadi file-file kecil. Sehingga orang-orang yang tidak menggunakan filesystem rancangannya akan kebingungan saat mengakses direktori terenkripsi tersebut. Untuk segi efisiensi, dikarenakan pada perusahaan tersebut sering dilaksanakan sinkronisasi antara 2 direktori, maka jasir telah merumuskan sebuah metode agar filesystem-nya mampu mengsingkronkan kedua direktori tersebut secara otomatis. Agar integritas filesystem tersebut lebih terjamin, maka setiap command yang dilakukan akan dicatat kedalam sebuah file log.
 (catatan: filesystem berfungsi normal layaknya linux pada umumnya)
@@ -18,7 +16,7 @@ Enkripsi versi 1:
   “encv1_rahasia/FOTO_PENTING/kelincilucu.jpg” => “encv1_rahasia/ULlL@u]AlZA(/g7D.|_.Da_a.jpg
   Note : Dalam penamaan file ‘/’ diabaikan, dan ekstensi tidak perlu di encrypt.
 - Metode enkripsi pada suatu direktori juga berlaku kedalam direktori lainnya yang ada didalamnya.
-## Pembahasan soal 1
+### Pembahasan soal 1
 
 ### Soal 2
 Enkripsi versi 2:
@@ -28,7 +26,7 @@ Enkripsi versi 2:
 - Setiap pembuatan direktori terenkripsi baru (mkdir ataupun rename) akan tercatat ke sebuah database/log berupa file.
 - Pada enkripsi v2, file-file pada direktori asli akan menjadi bagian-bagian kecil sebesar 1024 bytes dan menjadi normal ketika diakses melalui filesystem rancangan jasir. Sebagai contoh, file File_Contoh.txt berukuran 5 kB pada direktori asli akan menjadi 5 file kecil yakni: File_Contoh.txt.000, File_Contoh.txt.001, File_Contoh.txt.002, File_Contoh.txt.003, dan File_Contoh.txt.004.
 - Metode enkripsi pada suatu direktori juga berlaku kedalam direktori lain yang ada didalam direktori tersebut (rekursif).
-## Pembahasan soal 2
+### Pembahasan soal 2
 
 ### Soal 3
 Sinkronisasi direktori otomatis:
@@ -43,7 +41,7 @@ Tanpa mengurangi keumuman, misalkan suatu directory bernama dir akan tersinkroni
 
 Jika persyaratan di atas terlanggar, maka kedua directory tersebut tidak akan tersinkronisasi lagi.
 Implementasi dilarang menggunakan symbolic links dan thread.
-## Pembahasan soal 3
+### Pembahasan soal 3
 
 ### Soal 4
 Log system:
@@ -72,4 +70,4 @@ Log system:
 | INFO::200419-18:29:28::MKDIR::/iz1 |
 | INFO::200419-18:29:33::CREAT::/iz1/yena.jpg |
 | INFO::200419-18:29:33::RENAME::/iz1/yena.jpg::/iz1/yena.jpeg |
-## Pembahasan soal 4
+### Pembahasan soal 4
