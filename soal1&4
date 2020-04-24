@@ -31,69 +31,61 @@ void logSystem(char* c, int type){
     fclose(logFile);
 }
 
-void encrypt1(char* enc) { //encrypt encv1_
-	if(strcmp(enc, ".") == 0) return;
-    if(strcmp(enc, "..") == 0)return;
-
-    int enc_length = strlen(enc), s = 0;
-	for(int i = enc_length; i >= 0; i--){
-		if(enc[i]=='/')break;
-		if(enc[i]=='.'){
-			enc_length = i;
-			break;
-		}
-	}
-	for(int i = 0; i < enc_length; i++){
-		if(enc[i] == '/') s = i+1;
-	}
-    for(int i = s; i < enc_length; i++) {
-		if(enc[i] == '/'){
-            continue;
-        }
+void encrypt1(char* str) { //encrypt encv1_
+	if(strcmp(str, ".") == 0) return;
+    if(strcmp(str, "..") == 0)return;
+    printf("enkrip nih saiki\n");
+    int str_length = strlen(str);
+    for(int i = 0; i < str_length; i++) {
+		if(str[i] == '/') continue;
+		if(str[i]=='.') break;
         for(int j = 0; j < 87; j++) {
-            if(enc[i] == key[j]) {
-                enc[i] = key[(j+10) % 87];
+            if(str[i] == key[j]) {
+                str[i] = key[(j+10) % 87];
                 break;
             }
         }
     }
 }
 
-void decrypt1(char * enc){ //decrypt encv1_
-	if(strcmp(enc, ".") == 0) return;
-    if(strcmp(enc, "..") == 0)return;
-	if(strstr(enc, "/") == NULL)return;
-
-    int enc_length = strlen(enc),s=0;
-	for(int i = enc_length; i >= 0; i--){
-		if(enc[i]=='/')break;
-		if(enc[i]=='.'){
-			enc_length = i;
+void decrypt1(char * str){ //decrypt encv1_
+	if(strcmp(str, ".") == 0) return;
+    if(strcmp(str, "..") == 0)return;
+	if(strstr(str, "/") == NULL)return;
+    printf("DECRYPT ENC : %s\n",str);
+    int str_length = strlen(str),s=0;
+	for(int i = str_length; i >= 0; i--){
+		if(str[i]=='/')break;
+		if(str[i]=='.'){//nyari titik terakhir
+			str_length = i;
 			break;
 		}
 	}
-	for(int i = 0; i < enc_length; i++){
-		if(enc[i] == '/'){
+	for(int i = 0; i < str_length; i++){
+		if(str[i] == '/'){
 			s = i+1;
 			break;
 		}
 	}
-    for(int i = s; i < enc_length; i++) {
-		if(enc[i] == '/'){
+    for(int i = s; i < str_length; i++) {
+		if(str[i] == '/'){
             continue;
         }
         for(int j = 0;j < 87; j++) {
-            if(enc[i] == key[j]) {
-                enc[i] = key[(j+77)%87];
+            if(str[i] == key[j]) {
+                str[i] = key[(j+77)%87];
                 break;
             }
         }
     }
+	printf("HASIL DECRYPT ENC : %s\n",str);
 }
 
 static  int  xmp_getattr(const char *path, struct stat *stbuf){
 	char * enc1 = strstr(path, kode1);
+	printf("getattr path :%s : enc1 : %s\n",path,enc1);
 	if(enc1 != NULL){
+		printf("dekrip nih GETATTR\n");
 		decrypt1(enc1);
     }
 
@@ -107,10 +99,11 @@ static  int  xmp_getattr(const char *path, struct stat *stbuf){
 }
 
 static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi){ //baca directory
-    printf("\nreaddir\n");
 	char * enc1 = strstr(path, kode1);
+    printf("\n--readdir path : %s : enc : %s\n", path, enc1);
 	if(enc1 != NULL) {
-        decrypt1(enc1);
+		printf("dekrip nih READDIR\n"); 
+        decrypt1(enc1);//buat ngebalikin biar bisa dibaca di document
     }
 
 	char newPath[1000];
@@ -127,13 +120,14 @@ static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
 	dp = opendir(newPath);
 	if (dp == NULL) return -errno;
 
-	while ((dir = readdir(dp)) != NULL) {
+	while ((dir = readdir(dp)) != NULL) { //buat loop yang ada di dalem directory
 		struct stat st;
 		memset(&st, 0, sizeof(st));
 		st.st_ino = dir->d_ino;
 		st.st_mode = dir->d_type << 12;
 		if(enc1 != NULL){
-			encrypt1(dir->d_name);
+			printf("d name : %s\n",dir->d_name);
+			encrypt1(dir->d_name); //encrypt file/directory yng ada di dalam directory sekarang
         }
 		res = (filler(buf, dir->d_name, &st, 0));
 		if(res!=0) break;
@@ -146,7 +140,10 @@ static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
 static int xmp_mkdir(const char *path, mode_t mode){ //buat bikin directory baru
 
 	char newPath[1000];
-	if(strcmp(path,"/") == 0)sprintf(newPath,"%s",dirPath);
+	if(strcmp(path,"/") == 0){
+		path=dirPath;
+		sprintf(newPath,"%s",path);
+	}
 	else sprintf(newPath, "%s%s",dirPath,path);
 
 	int res = mkdir(newPath, mode);
@@ -163,7 +160,7 @@ static int xmp_mknod(const char *path, mode_t mode, dev_t rdev){
 
 	char newPath[1000];
 	if(strcmp(path,"/") == 0){
-		path=dirPath;
+		path = dirPath;
 		sprintf(newPath,"%s",path);
 	} else sprintf(newPath, "%s%s",dirPath,path);
 	int res;
@@ -185,67 +182,69 @@ static int xmp_mknod(const char *path, mode_t mode, dev_t rdev){
 	return 0;
 }
 
-static int xmp_unlink(const char *path) {
-
+static int xmp_unlink(const char *path) { //ngehapus file
+	printf("unlink\n");
 	char * enc1 = strstr(path, kode1);
-	if(enc1 != NULL)
-		decrypt1(enc1);
+	if(enc1 != NULL){
+		printf("dekrip nih RMDIR\n");
+        decrypt1(enc1); //buat ngebalikin biar bisa dibaca di document
+    }
 
 	char newPath[1000];
 	if(strcmp(path,"/") == 0){
 		path=dirPath;
 		sprintf(newPath,"%s",path);
 	} else sprintf(newPath, "%s%s",dirPath,path);
-	int res;
-
-	res = unlink(newPath);
     char str[100];
 	sprintf(str, "REMOVE::%s", path);
 	logSystem(str,2);
+	int res;
+	res = unlink(newPath);
 	if (res == -1)
 		return -errno;
 
 	return 0;
 }
 
-static int xmp_rmdir(const char *path) {
-
+static int xmp_rmdir(const char *path) {//ngehapus directory
+	printf("rmdir\n");
 	char * enc1 = strstr(path, kode1);
-	if(enc1 != NULL)
-		decrypt1(enc1);
+	if(enc1 != NULL){
+		printf("dekrip nih RMDIR\n");
+        decrypt1(enc1); //buat ngebalikin biar bisa dibaca di document
+    }
 
 	char newPath[1000];
 	sprintf(newPath, "%s%s",dirPath,path);
-	int res;
-
-	res = rmdir(newPath);
     char str[100];
 	sprintf(str, "RMDIR::%s", path);
 	logSystem(str,2);
+	int res;
+	res = rmdir(newPath);
 	if (res == -1)
 		return -errno;
 
 	return 0;
 }
 
-static int xmp_rename(const char *from, const char *to) {
-
+static int xmp_rename(const char *from, const char *to) { //buat renme
+	printf("\nRENAME!!!\n");
 	char fileFrom[1000],fileTo[1000];
 	sprintf(fileFrom,"%s%s",dirPath,from);
 	sprintf(fileTo,"%s%s",dirPath,to);
 
-	int res;
-	res = rename(fileFrom, fileTo);
     char str[100];
 	sprintf(str, "RENAME::%s::%s", from, to);
 	logSystem(str,1);
+	int res;
+	res = rename(fileFrom, fileTo);
 	if (res == -1)
 		return -errno;
 
 	return 0;
 }
 
-static int xmp_open(const char *path, struct fuse_file_info *fi){
+static int xmp_open(const char *path, struct fuse_file_info *fi){ //open file
 	char newPath[1000];
 	sprintf(newPath, "%s%s",dirPath,path);
 	int res;
@@ -256,7 +255,7 @@ static int xmp_open(const char *path, struct fuse_file_info *fi){
 	return 0;
 }
 
-static int xmp_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi){
+static int xmp_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi){ //read file
 	
 	char newPath[1000];
 	sprintf(newPath, "%s%s",dirPath,path);
@@ -274,7 +273,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset, stru
 	return res;
 }
 
-static int xmp_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+static int xmp_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) { //write file
 	
 	char newPath[1000];
 	sprintf(newPath, "%s%s", dirPath, path);
